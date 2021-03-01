@@ -1,0 +1,163 @@
+	9. String是一个基本类型么？java的基本类型有哪些？String和StringBuffer和StringBuilder的区别是什么？
+	Ø String不是基本数据类型。基本类型有float、double、byte、short、int、long、char、boolean。
+	Ø String类是不可变类，任何对String的改变都会引发新的String对象的生成；StringBuffer和StringBuilder则是可变类，任何对它所指代的字符串的改变都不会产生新的对象（底层都是char[]）。
+	Ø StringBufferd支持并发操作，线程安全的，适合多线程中使用（使用synchronized实现）。StringBuilder不支持并发操作，线程不安全的，不适合多线程中使用。类似HashTable和HashMap的区别
+	Ø StringBuilder 相较于 StringBuffer 有速度优势，所以多数情况下建议使用 StringBuilder 类。然而在应用程序要求线程安全的情况下，则必须使用 StringBuffer 类。
+	
+	
+	10. String str = 'i' 与 String str = new String('i')一样吗？不同点在哪里？String.intern()方法？String str = new String('xyz')创建了几个对象
+	Ø 不一样。因为内存的分配方式不一样。String str = "i"的方式，java虚拟机会将其分配到常量池中；而String str = new String("i")的方式，则会被分配到堆内存中。
+	Ø jdk1.8后，移除了永久代，方法区的实现改为了元空间，但是常量池还在堆中。注意，常量池不会重复创建对象，在String str1="i"中，把i值存在常量池，地址赋给str1。假设再写一个String str2=“i”，则会把i的地址赋给str2，但是i对象不会重新创建，他们引用的是同一个地址值，共享同一个i内存。而堆内存会创建新的对象，假设再写一个String str3=new String(“i”)，则会创建一个新的i对象，然后将新对象的地址值赋给str3。虽然str3和str1的值相同但是地址值不同。
+	Ø 拓展：堆内存用来存放由new创建的对象和数组。 在堆中分配的内存，由Java虚拟机的自动垃圾回收器来管理。常量池指的是在编译期被确定，并被保存在已编译的.class文件中的一些数据。
+	Ø String.intern()是一个native方法，调用str.intern()方法时，返回的是字符串对象在常量池中和它相等的字符串的引用。JVM首先会在当前类的常量池中查找是否存在于str等值的String，若存在则直接返回常量池中相应的String的引用；若不存在，则会在常量池中创建一个等值的String，然后返回这个String在常量池中的引用。jdk1.7后，如果在常量池找不到对应的字符串，则不会再将字符串拷贝到常量池，而是在常量池生产一个对原字符串的引用，也就是把堆上的地址复制到常量池。因此，只要是等值的String对象，使用intern方法返回的都是常量池中同一个String引用。Jdk6 中常量池位于PremGen区，大小受限，不建议使用String.intern()方法，不过Jdk7 将常量池移到了Java堆区，大小可控，可以通过-xx:StringTableSize参数设置StringTable的大小，可以重新考虑使用String.intern()方法，但是由对比测试可知，使用该方法的耗时不容忽视，所以需要慎重考虑该方法的使用；String.intern()方法主要适用于程序中需要保存有限个会被反复使用的值的场景，这样可以减少内存消耗，同时在进行比较操作时减少时耗，提高程序性能。
+	Ø 首先要看常量池里是否有“xyz”这个字符串，如果有(String str = "xyz";出现时则有)，则创建一个，如果没有，则创建两个(一个在常量池，一个在堆中)。
+	
+	11. Object类有去了解吗？该类有哪些常用的方法，分别是怎么实现的？
+	Ø Object类存储在java.lang包中，是所有类的父类，任何类都默认继承Object。我们在使用类的时候就会利用Object类中的方法
+	
+	Ø Object类中的方法：
+	1．clone方法--native
+	保护方法，实现对象的浅复制，只有实现了Cloneable接口才可以调用该方法，否则抛出CloneNotSupportedException异常。
+	主要是JAVA里除了8种基本类型传参数是值传递，其他的类对象传参数都是引用传递，我们有时候不希望在方法里将参数改变，这时就需要在类中复写clone方法。
+	
+	2．getClass方法--final native
+	final方法，获得运行时类型。
+	
+	3．toString方法
+	该方法用得比较多，一般子类都有覆盖。
+	
+	4．finalize方法--protected
+	该方法用于释放资源。一旦垃圾回收器准备好释放对象占用的存储空间，将首先调用其finalize()方法。并且在下一次垃圾回收动作发生时，才会真正回收对象占用的内存。因为无法确定该方法什么时候被调用，很少使用
+	不能显示直接调用finalize方法。finalize方法在垃圾回收时一定会被执行，而如果在此之前显示执行的话，也就是说finalize会被执行两次以上，而在第一次资源已经被释放，那么在第二次释放资源时系统一定会报错，因此一般finalize方法的访问权限和父类保持一致，为protected。
+	
+	5．equals方法
+	该方法是非常重要的一个方法。一般equals和==是不一样的，但是在Object中两者是一样的。子类一般都要重写这个方法。
+	
+	6．hashCode方法--native
+	该方法用于哈希查找，可以减少在查找中使用equals的次数，重写了equals方法一般都要重写hashCode方法。这个方法在一些具有哈希功能的Collection中用到。
+	一般必须满足obj1.equals(obj2)==true。可以推出obj1.hash- Code()==obj2.hashCode()，但是hashCode相等不一定就满足equals。不过为了提高效率，应该尽量使上面两个条件接近等价。如果不重写hashcode(),在HashSet中添加两个equals的对象，会将两个对象都加入进去，因为默认情况下，hashCode方法是将对象的存储地址进行映射。
+	下面这段话摘自Effective Java一书：
+	在程序执行期间，只要equals方法的比较操作用到的信息没有被修改，那么对这同一个对象调用多次，hashCode方法必须始终如一地返回同一个整数。
+	如果两个对象根据equals方法比较是相等的，那么调用两个对象的hashCode方法必须返回相同的整数结果。
+	如果两个对象根据equals方法比较是不等的，则hashCode方法不一定得返回不同的整数。
+	
+	7．wait方法--final
+	wait方法就是使当前线程等待该对象的锁，当前线程必须是该对象的拥有者，也就是具有该对象的锁。wait()方法一直等待，直到获得锁或者被中断。wait(long timeout)设定一个超时间隔，如果在规定时间内没有获得锁就返回。
+	
+	调用该方法后当前线程进入睡眠状态，直到以下事件发生。
+	
+	（1）其他线程调用了该对象的notify方法。
+	
+	（2）其他线程调用了该对象的notifyAll方法。
+	
+	（3）其他线程调用了interrupt中断该线程。
+	
+	（4）时间间隔到了。
+	
+	此时该线程就可以被调度了，如果是被中断的话就抛出一个InterruptedException异常。
+	
+	8．notify方法--final native
+	该方法唤醒在该对象上等待的某个线程。
+	
+	9．notifyAll方法--final native
+	该方法唤醒在该对象上等待的所有线程。
+	
+	
+	12. java的hashcode和equals方法的作用？什么时候会用到？为什么重写Object的equals(Object obj)方法尽量要重写Object的hashCode()方法？
+	Ø equals作用：用于判断其他对象是否与该对象相同；
+	Ø hashcode作用：给不同的对象返回不同的hash code值，相当于识别码。使用Hashcode()时应当符合以下三点：
+	• 在一个Java应用的执行期间，如果一个对象提供给equals做比较的信息没有被修改的话，该对象无论调用多少次hashCode()，必须始终返回同一个integer；
+	• 如果两个对象根据equals(Object)方法是相等的，那么调用二者各自的hashCode()必须产生同一个integer结果；
+	• 调用equals(java.lang.Object)方法结果不相等的两个对象，调用二者各自hashCode()不一定不相同，可能相同，可能不同。
+	
+	使用场景：
+	Ø 在集合查找时，使用hashcode能大大降低对象的比较次数，提高查找效率。如HashMap，可以通过hashcode rehash后的值，一下定位到对象的entry链表位置，不用一个个key进行比较
+	Ø 判断java集合里两个对象是否相等时，可以先判断两个对象的hashcode是否想等，如果相等，在通过equals是否相等，如果不相等，那么认为两个对象也不相等，结束判断。这样一旦出现大量数据需要判断时，可以大大减少判断次数
+	Ø Java对象的eqauls方法和hashCode方法是这样规定的：
+	　　　　1、相等（相同）的对象必须具有相等的哈希码（或者散列码）。
+	　　　　2、如果两个对象的hashCode相同，它们并不一定相同。
+	
+	Ø 为什么要重写equals呢？因为在Java的集合框架中，是通过equals来判断两个对象是否相等的；
+	Ø 如前所述，这里主要是为了在集合比较和查找时，先通过hashCode进行判断，来减少比较次数，提高效率，仅靠equals进行判断的话，大量数据的时候执行效率很低
+	
+	13. Java中==和equals的区别是什么？
+	Ø 在JVM中，内存分为堆内存和栈内存。他们二者的区别是：当我们创建一个对象(new Object)时，就会调用对象的构造函数来开辟空间，将对象数据存储在堆内存中，同时在栈内存中生成对应的引用，我们后续的调用的都是栈内存的引用。还需注意一点，基本数据类型是存储在栈内存中，变量直接存储的是‘值’，而引用类型变量存储的是对象在内存中的地址。
+	Ø 对于==如果作用于基本数据类型的变量，则直接比较其存储的‘值’是否相等；如果作用于引用类型的变量，则比较的是所指向的对象的地址
+	Ø 对于equals方法，其不能作用于基本数据类型的变量。如果没有对equals方法进行重写，则比较的是引用类型的变量所指向的地址（Object底层直接用的是==）；诸如String、Date等类对equals方法进行了重写的话，比较的是所指向的对象的内容；
+	
+	14. 序列化的作用是什么？常见的序列化方法？java自带的序列化是怎么实现的？transient关键字？Java中的Serializable接口和Externalizable接口有什么区别？Serializable接口中有几个方法？如果没有方法的话，那么这么设计Serializable接口的目的是什么？什么是serialVersionUID？如果你没有定义serialVersionUID意味着什么？
+	Ø 序列化和反序列化的定义：
+	    (1)Java序列化就是指把Java对象转换为字节序列的过程
+	       Java反序列化就是指把字节序列恢复为Java对象的过程。
+	   (2)序列化最重要的作用：对象转换为有序字节流,以便在网络上传输或者保存在本地文件中.在传递和保存对象时.保证对象的完整性和可传递性。。
+	       反序列化的最重要的作用：根据字节流中保存的对象状态及描述信息，通过反序列化重建对象。
+	Ø 几种常见Java序列化方式：Java原生以流的方法进行的序列化、Json序列化、FastJson序列化、Protobuff序列化
+	• Java原生序列化方法即通过Java原生流(InputStream和OutputStream之间的转化)的方式进行转化。需要注意的是JavaBean实体类必须实现Serializable接口，否则无法序列化
+	• Json序列化一般会使用jackson包，通过ObjectMapper类来进行一些操作，比如将对象转化为byte数组或者将json串转化为对象。
+	• FastJson序列化:特点速度快，测试表明fastjson具有极快的性能，超越任其他的java json parser
+	• Protobuff序列化：ProtocolBuffer是一种轻便高效的结构化数据存储格式，可以用于结构化数据序列化。适合做数据存储或 RPC 数据交换格式。可以很大程度上将对象压缩，可以大大减少数据传输大小，提高系统性能。
+	• 序列化后对象的所占大小上：protobuff序列化所占总大小是最少的；其次是fastJson序列化；最后是json序列化和java原生序列化。
+	
+	Ø 序列化的实现：将需要被序列化的类实现Serializable接口，该接口没有需要实现的方法，implements Serializable只是为了标注该对象是可被序列化的，
+	然后使用一个输出流(如：FileOutputStream)来构造一个ObjectOutputStream(对象流)对象，接着，使用ObjectOutputStream对象的writeObject(Object obj)方法就可以将参数为obj的对象写出(即保存其状态)，要恢复的话则用输入流　java.io.ObjectInputStream的readObject()方法从一个源输入流中读取字节序列，再把它们反序列化为一个对象，并将其返回。
+	序列化和反序列化代码示例：
+	public class SerializableTest {
+	        public static void main(String[] args) throws IOException, ClassNotFoundException {
+	            //序列化。ByteArrayOutputStream是转化为二进制流，在网络传输
+	            FileOutputStream fos = new FileOutputStream("object.out");
+	            ObjectOutputStream oos = new ObjectOutputStream(fos);
+	            Student student1 = new Student("lihao", "wjwlh", "21");
+	            oos.writeObject(student1);
+	            oos.flush();
+	            oos.close();
+	            //反序列化
+	            FileInputStream fis = new FileInputStream("object.out");
+	            ObjectInputStream ois = new ObjectInputStream(fis);
+	            Student student2 = (Student) ois.readObject();
+	            System.out.println(student2.getUserName()+ " " +
+	                    student2.getPassword() + " " + student2.getYear());
+	    }
+	 
+	}
+	注意：
+	读取对象的顺序与写入时的顺序要一致。
+	对象的默认序列化机制写入的内容是：对象的类，类签名，以及非瞬态和非静态字段的值。
+	Ø 当某个字段被声明为transient后，默认序列化机制就会忽略该字段。
+	Ø Externalizable接口提供了两个方法writeExternal()和readExternal()。这两个方法给我们提供了灵活处理Java序列化的方法，通过实现这个接口中的两个方法进行对象序列化可以替代Java中默认的序列化方法。正确的实现Externalizable接口可以大幅度的提高应用程序的性能。
+	Ø Serializable接口在java.lang包中，是Java序列化机制的核心组成部分。它里面没有包含任何方法，我们称这样的接口为标识接口。如果你的类实现了Serializable接口，这意味着你的类被打上了“可以进行序列化”的标签，并且也给了编译器指示，可以使用序列化机制对这个对象进行序列化处理。
+	Ø serialVersionUID是一个私有的静态final属性，用于表明类之间不同版本的兼容性，该属性不是必须的。当一个类实现了java.io.Serializable接口，但是没有显示定义一个Long类型的serialVersionUID属性，java序列化机制会根据编译的class自动生成一个serialVersionUID作为该类的序列化版本ID号，只有同一次编译生成的class才会生成相同的serialVersionUID。在反序列化过程中，JVM会把传来的字节流中的serialVersionUID与本地类的serialVersionUID进行比较，如果相同就认为版本一致，可以进行反序列化，否则就会出现序列化版本不一致的InvalidClassException异常。如果不希望通过编译来强制划分软件版本，即实现序列化接口的类能够兼容以前版本，只需显示地定义一个名为serialVersionUID、类型为Long的final属性，即可保证相同的版本号，且在进行序列化和反序列化时不会出现InvalidClassException异常。
+	
+	Ø 序列化和反序列化的注意点：
+	①序列化时，只对对象的状态进行保存，而不管对象的方法；
+	②当一个父类实现序列化，子类自动实现序列化，不需要显式实现Serializable接口；
+	③当一个对象的实例变量引用其他对象，序列化该对象时也把引用对象进行序列化；
+	④并非所有的对象都可以序列化，至于为什么不可以，有很多原因了，比如：
+	安全方面的原因，比如一个对象拥有private，public等field，对于一个要传输的对象，比如写到文件，或者进行RMI传输等等，在序列化进行传输的过程中，这个对象的private等域是不受保护的；
+	资源分配方面的原因，比如socket，thread类，如果可以序列化，进行传输或者保存，也无法对他们进行重新的资源分配，而且，也是没有必要这样实现；
+	
+	⑤声明为static和transient类型的成员数据不能被序列化。因为static代表类的状态，transient代表对象的临时数据。
+	⑥序列化运行时使用一个称为 serialVersionUID 的版本号与每个可序列化类相关联，该序列号在反序列化过程中用于验证序列化对象的发送者和接收者是否为该对象加载了与序列化兼容的类。为它赋予明确的值。显式地定义serialVersionUID有两种用途：
+	在某些场合，希望类的不同版本对序列化兼容，因此需要确保类的不同版本具有相同的serialVersionUID；
+	在某些场合，不希望类的不同版本对序列化兼容，因此需要确保类的不同版本具有不同的serialVersionUID。
+	⑦Java有很多基础类已经实现了serializable接口，比如String,Vector等。但是也有一些没有实现serializable接口的；
+	⑧如果一个对象的成员变量是一个对象，那么这个对象的数据成员也会被保存！这是能用序列化解决深拷贝的重要原因；
+	注意：浅拷贝请使用Clone接口的原型模式。
+	
+	15. Java创建一个对象有几种方法？
+	Ø 使用new关键字创建对象。通过这种方式，可以调用任意的构造函数（无参和带参的）
+	Ø 使用Class类的newInstance方法。这个newInstance方法调用无参的构造函数创建对象。例：
+	Employee emp2 = (Employee) Class.forName("com.example.test.readygo.javaBasic.Employee").newInstance();
+	Ø 使用Constructor类的newInstance方法。这个newInstance方法调用有参的和私有的构造函数创建对象。例：
+	Constructor<Employee> constructor = Employee.class.getConstructor();
+	Employee emp3 = constructor.newInstance();
+	Ø 使用对象clone方法，将前面对象的内容全部拷贝进去
+	Ø 使用反序列化，此时需要让类实现Serializable接口
+	// Serialization
+	ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("data.obj"));
+	out.writeObject(emp4);
+	out.close();
+	//Deserialization
+	ObjectInputStream in = new ObjectInputStream(new FileInputStream("data.obj"));
+     Employee emp5 = (Employee) in.readObject();
+	in.close();
+	Ø newInstance方法使用的是反射，事实上Class的newInstance方法内部调用Constructor的newInstance方法
