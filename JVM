@@ -304,14 +304,9 @@ final 修饰的变量是一个常量，编译期就能确定其值。所以 str1
 s3 调用 intern 方法，返回的是s3的内容（ab）在常量池中的地址值。所以 s3.intern() == s 结果为 true。
 原文链接： https://blog.csdn.net/rongtaoup/article/details/89142396
 
-6. 什么情况下会发生堆溢出？什么情况下会发生栈溢出？
-StackOverFlowError:当请求的栈深度大于虚拟机所允许的最大深度
-OutOfMemoryError:虚拟机在扩展栈时无法申请到足够的内存空间[一般都能设置扩大]
+6. JVM的Client模式与Server模式区别？（了解）
+Ø JVM有两种运行模式Server与Client。两种模式的区别在于，Client模式启动速度较快，Server模式启动较慢；但是启动进入稳定期长期运行之后Server模式的程序运行速度比Client要快很多。这是因为Server模式启动的JVM采用的是重量级的虚拟机，对程序采用了更多的优化；而Client模式启动的JVM采用的是轻量级的虚拟机。所以Server启动慢，但稳定后速度比Client远远要快。
 
-注意内存溢出是error级别的
-
-7. JVM内存为什么要分成新生代、老年代、持久代。新生代中为什么要分为Eden和Survivor？
-根据根可达算法，jvm会从开始寻找到所有正在使用的对象，没有使用的就是垃圾,通常情况下，很多对象都是用完就抛弃的，所以真正在Survivor区长时间存活的对象非常少，将这部分对象从一个Survivor区转到另一个Survivor区后，就可以直接对这个Survivor区进行全量的空间回收了，效率会很高。
 
 图片：
 https://blog.csdn.net/qzqanzc/article/details/81008598
