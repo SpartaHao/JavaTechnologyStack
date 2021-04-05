@@ -1,0 +1,15 @@
+	1. zookeeper的watch机制？
+	zookeeper 的 watcher 机制，可以分为四个过程：
+	• 客户端注册Watcher到服务端;
+	• 服务端发生数据变更;
+	• 服务端通知客户端数据变更;
+	• 客户端回调Watcher处理变更应对逻辑;
+	其中客户端注册 watcher 有三种方式，调用客户端 API 可以分别通过 getData、exists、getChildren 实现。
+	
+	监视有两种类型：数据监视点和子节点监视点。创建、删除或者设置znode都会触发这些监视点。exists,getData 可以设置监视点。getChildren 可以设置子节点变化。
+	
+	而可能监测的事件类型有: NodeCreated, NodeDataChanged, NodeDeleted, NodeChildrenChanged. 
+	
+	watch是一次性触发器。客户端在Znode设置了Watch时，如果Znode内容发生改变，那么客户端就会获得Watch事件。例如：客户端设置getData("/znode1", true)后，如果/znode1发生改变或者删除，那么客户端就会得到一个/znode1的Watch事件，但是/znode1再次发生变化，那客户端是无法收到Watch事件的，除非客户端设置了新的Watch。
+	
+Watch事件是异步发送到Client。Zookeeper可以保证客户端发送过去的更新顺序是有序的。由于Watch有一次性触发的特点，所以在服务器端没有Watcher的情况下，Znode的任何变更就不会通知到客户端。不过，即使某个Znode设置了Watcher，且在Znode有变化的情况下通知到了客户端，但是在客户端接收到这个变化事件，但是还没有再次设置Watcher之前，如果其他客户端对该Znode做了修改，这种情况下，Znode第二次的变化客户端是无法收到通知的。这可能是由于网络延迟或者是其他因素导致，所以我们使用Zookeeper不能期望能够监控到节点每次的变化。Zookeeper只能保证最终的一致性，而无法保证强一致性。
