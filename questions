@@ -1,0 +1,58 @@
+1. 如何设计一个高并发的支付系统？
+2. 如何设计一个抢红包系统？
+3. 如何解决超卖现象？
+4. 如何设计一个线程池？
+5. 如何设计一个分布式coutdownlatch？
+6. 如何设计一个微博关注度的数据库？
+
+如何设计一个抢购系统，如果用户在规定时间内没有付款则订单取消？
+
+RPC框架的面试题：
+19. 常见的RPC框架有哪些？能否做个对比？
+rpc是一种思想，http是一种具体的实现形式，是rpc的一个特例
+
+20. Grpc框架的原理有了解？
+21. Rpc框架的原理介绍下？Zookeeper在框架中的作用是什么？
+
+
+Mybaits面试题：
+
+22. mapper的加载方式？
+23. selectOne和selectUser方法有什么区别？
+24. mybaits 的实现原理？
+25. Configuration参数中有哪些常用的？分别介绍一下？
+26. statementHandler 和prepareStatementHandler 的区别？
+27. mybaits的一级缓存和二级缓存的区别？
+28. #{}和${}的区别是什么？
+29. Mybatis是如何进行分页的？分页插件的原理是什么？
+30. 使用MyBatis的mapper接口调用时有哪些要求？
+31. Mybatis是否支持延迟加载？如果支持，它的实现原理
+32. 怎么使用mybaits实现分表功能？
+
+
+spring可以理解为是一个容器，存储的是bean对象。无论是注解还是xml的形式，最终都会转成BeanDefinition对象。然后将BeanDefinition通过反射进行实例化操作（不是new）。
+
+1. 聊聊spring的IOC和AOP？其底层原理分别是什么？
+https://www.cnblogs.com/helios-fz/p/10932384.html
+2. Spring支持哪几种注入的方式？
+3. BeanFactory和ApplicationContext有什么区别？BeanFactory和FactoryBean的区别？
+4. Bean的生命周期？Bean的作用域有几种？单例bean是线程安全的么？
+5. Springboot的启动流程？
+6. Spring有几种自动装配的方式？
+7. Spring有用到哪几种设计模式？Spring中主要的模块有哪些?
+8. Spring的事务有了解？管理方式有几种？声明式事务的实现原理是？传播级别有几种？
+9. Spring的事件类型有几种？
+10. Springmvc的流程？
+11. SpringMvc的控制器是不是单例模式,如果是,有什么问题,怎么解决？
+12. Spring的常用注解有哪些？分别代表什么意思？
+13. Spring怎么解决循环依赖问题的？
+14. SpringMvc里面拦截器是怎么写的？
+15. Spring AOP和AspectJ AOP有什么区别？
+16. Springcloud和dubbo的区别？
+Ø Dubbo仅仅是一个RPC框架，实现Java程序的远程调用，实施服务化的中间件则需要自己开发；
+Ø Spring Cloud则是实施微服务的一系列套件，包括：服务注册与发现、断路器、服务状态监控、配置管理、智能路由、一次性令牌、全局锁、分布式会话管理、集群状态管理等。
+
+17. ribbon和feign的区别？
+18. ribbon、feign以及hystrix的超时、重试设置？
+19. hystrix的隔离策略和zuul的功能是？
+20. 说说Eureka的服务发现过程？和zookeeper相比优势是什么？
