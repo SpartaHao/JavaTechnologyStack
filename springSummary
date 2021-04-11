@@ -1,0 +1,10 @@
+spring是一个框架，在我们整个开发过程中，所有的框架生成都依赖spring。spring帮我们起到了一个IOC容器的作用，用来承载我们整体的bean对象。它帮我们进行了整个对象从创建到销毁的整个生命周期的管理。可以使用配置文件或注解的方式来进行相关实现。当我们程序开始启动之后，要把注解或者配置文件定义好的那些bean对象转换成一个BeanDefinition，然后完成整个BeanDefinition的解析和加载过程；当我们获取到这些完整对象之后，下一步要对整个BeanDefinition进行实例化操作，最简单的方式是通过反射的方式来创建对象。此时创建的对象只是在堆中开辟了空间，并没有完成后续的一系列初始化操作。当整个对象创建完成后，就可以进行调用了。
+
+spring：是一个容器，用来存储bean对象。使用Map来存，因为我们一般是通过context.getBean（****.class）来获取对象，通过某个key当然用Map比较好
+
+所有定义的bean对象最终都会被解析为BeanDifinition，bean定义对象。
+通过BeanDifinition实例化对象时，是通过反射的方式，因为比较灵活。BeanDifinition里面都是占位符，通过PlaceholderConfigurerSupport（BeanFactoryPostProcessor的子类）将占位符替换为对应的数值。
+
+PlaceholderConfigurerSupport： Abstract base class for property resource configurers that resolve placeholders in bean definition property values.
+
+通过doProcessConfigurationClass完成标签或者注解的解析。该方法是ConfigurationClassPostProcessor来的。
