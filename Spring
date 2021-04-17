@@ -1,0 +1,85 @@
+2. spring重要名词和关键阶段（总结）
+v Aware类型的接口的作用就是让我们能够拿到Spring容器中的一些资源。基本都能够见名知意，Aware之前的名字就是可以拿到什么资源，例如BeanNameAware可以拿到BeanName，以此类推。调用时机需要注意：所有的Aware方法都是在初始化阶段之前调用的！
+
+v 配置元信息：xml配置文件，或者是其他形式的例如properties的磁盘文件，也可以是现在主流的注解，甚至是直接的代码硬编码。总之，这些创建对象所需要的必要信息称为配置元信息。如：
+<bean id="role" class="com.wbg.springxmlbean.entity.Role">
+    <!-- property元素是定义类的属性，name属性定义的是属性名称 value是值
+    相当于：
+    Role role=new Role();
+    role.setId(1);
+    role.setRoleName("高级工程师");
+    role.setNote("重要人员");-->
+    <property name="id" value="1"/>
+    <property name="roleName" value="高级工程师"/>
+    <property name="note" value="重要人员"/>
+</bean>
+
+v BeanDefination：在Java世界中，万物皆对象，散落于程序代码各处的注解以及保存在磁盘上的xml或者其他文件等等配置元信息，在内存中总要以一种对象的形式表示，配置元信息被加载到内存之后是以BeanDefination的形存在的。
+
+v BeanDefinationReader：BeanDefinationReader的作用就是加载配置元信息，并将其转化为内存形式的BeanDefination。
+
+v BeanDefinationRegistry：Spring通过BeanDefinationReader将配置元信息加载到内存生成相应的BeanDefination之后，就将其注册到BeanDefinationRegistry中，BeanDefinationRegistry就是一个存放BeanDefination的大篮子，它也是一种键值对的形式，通过特定的Bean定义的id，映射到相应的BeanDefination。
+
+v BeanFactoryPostProcessor：BeanFactoryPostProcessor是容器启动阶段Spring提供的一个扩展点，主要负责对注册到BeanDefinationRegistry中的一个个的BeanDefination进行一定程度上的修改与替换。例如我们的配置元信息中有些可能会修改的配置信息散落到各处，不够灵活，修改相应配置的时候比较麻烦，这时我们可以使用占位符的方式来配置。BeanFactoryPostProcessor就会对注册到BeanDefinationRegistry中的BeanDefination做最后的修改，替换$占位符为配置文件中的真实的数据。
+
+
+v 容器的启动阶段的最终产物就是注册到BeanDefinationRegistry中的一个个BeanDefination了，这就是Spring为Bean实例化所做的预热的工作。
+
+
+v AbstractApplicationContext.finishBeanFactoryInitialization()：在容器启动阶段，已经完成了bean的注册。如果该对象是配置成懒加载的方式，那么直到我们向Spring要依赖对象实例之前，其都是以BeanDefinationRegistry中的一个个的BeanDefination的形式存在，也就是Spring只有在我们第一次依赖对象的时候才开启相应对象的实例化阶段。而如果我们不是选择懒加载的方式，容器启动阶段完成之后，其中有一个步骤finishBeanFactoryInitialization()，在这一步将立即启动Bean实例化阶段，通过隐式的调用所有依赖对象的getBean方法来实例化所有配置的Bean，完成类的加载。
+
+v BeanWrapper：Spring中的Bean并不是以一个个的本来模样存在的，由于Spring IOC容器中要管理多种类型的对象，因此为了统一对不同类型对象的访问，Spring给所有创建的Bean实例穿上了一层外套，这个外套就是BeanWrapper，BeanWrapper实际上是对反射相关API的简单封装，使得上层使用反射完成相关的业务逻辑大大的简化，我们要获取某个对象的属性，调用某个对象的方法，现在不需要在写繁杂的反射API了以及处理一堆麻烦的异常，直接通过BeanWrapper就可以完成相关操作，简直不要太爽了。
+
+v AbstractBeanFactory类下面的doGetBean()方法：获取bean。doGetBean()的总体功能就是在创建bean对象之前，先去缓存或者beanFactory工厂中查看是否存在bean，如果存在，则返回，不存在，则进行对应的创建流程。
+1）转换beanName(别名转换)：消除修饰符，比如工厂引用前缀 String FACTORY_BEAN_PREFIX = "&"; 解决spring中alias标签的别名问题
+2）尝试从缓存中去加载实例，如果获取到了就直接返回
+3）如果缓存中存在对应的bean
+      对缓存渠道的bean进行实例化。从缓存中获取的bean是原始状态的bean,需要在这里对bean进行bean实例化，也就是调用后面的getObjectForBeanInstance()方法。此时会进行 合并RootBeanDefinition、BeanPostProcessor进行实例前置处理、实例化、实例后置处理。
+4）如果缓存中没有对应bean
+       4.1）循环依赖检查。 (构造器的循环依赖)循环依赖存在，则报错。
+   4.2）如果缓存中没有数据，就会转到父类工厂去加载。
+       4.3）存储XML配置文件的GernericBeanDefinition转换成RootBeanDefinition，即为合并父类定义。 XML配置文件中读取到的bean信息是存储在GernericBeanDefinition中的，但Bean的后续处理是针对于RootBeanDefinition的，所以需要转换后才能进行后续操作。
+   4.4）初始化依赖的bean：bean中可能依赖了其他bean属性，在初始化bean之前会先初始化这个bean所依赖的bean属性（也是依次掉用getBean方法）。
+   4.5）创建bean。AbstractAutowireCapableBeanFactory.createBean()。                 
+              4.5.1）根据设置的 class 属性或者根据 className 来解析 Class
+              4.5.2）验证及准备覆盖的方法。获取类的重载方法列表，然后遍历，一个一个进行处理。具体处理的是 lookup-method 和 replaced-method 属性，这个步骤解析的配置将会存入 beanDefinition 中的 methodOverrides 属性里，是为了待会实例化做准备。 如果 bean 在实例化时，监测到 methodOverrides 属性，会动态的为当前 bean 生成代理，使用对应的拦截器为 bean 做增强处理。
+             4.5. 3）resolveBeforeInstantiation().解析指定bean，让 beanPostProcessor 有机会返回代理而不是目标bean实例.这里会分别执行前置拦截器操作（InstantiationAwareBeanPostProcessor.postProcessBeforeInstantiation）和后置拦截器操作(BeanPostProcessor.postProcessAfterInitialization)。如果第一个前置拦截器实例化成功，就已经将单例 bean 放入缓存中，它不会再经历普通 bean 的创建过程，没有机会进行后处理器的调用，所以在这里的第二个步骤，就是为了这个 bean 也能应用后处理器的 postProcessAfterInitialization 方法。而如果这个bean没有特定的前置处理，那说明这个bean是一个普通的bean，则执行doCreateBean进行创建.
+             4.5.4）创建 bean。doCreateBean()，这里开始真正的创建bean对象。其主要流程可以总结为：
+                        4.5.4.1）如果要加载的bean是单例，就先清除缓存中的bean信息；
+                        4.5.4.2）根据指定bean使用对应的策略实例化bean，例如：工厂方法，构造函数自动注入，简单初始化。最终将BeanDifinition转化成 BeanWrapper；
+                 createBeanInstance()这一步的流程主要通过两种方式实例化bean对象，一种是工厂方法，另一种就是构造函数，大致介绍功能：
+                                      --如果存在工厂方法则使用工厂方法进行初始化
+                                      --如果则使用有参构造行数实例化bean：一个类有多个构造函数，每个构造函数都有不同的参数，所以需要根据参数锁定构造函数进行 bean 的实例化
+                                      --如果既不存在工厂方法，也不存在带有参数的构造函数，会使用默认的构造函数进行 bean 的实例化
+                        4.5.4.3）后置处理器修改合并后的bean定义：bean合并后的处理，Autowired注解正是通过此方法实现诸如类型的预解析；
+                        4.5.4.4）依赖处理，提前暴露bean的引用，主要用于解决循环依赖的问题；
+                        4.5.4.5）属性填充：将所有属性填充到bean的实例中，如果存在对其他bean的依赖，将会递归初始化依赖的bean
+                                   （1）调用 InstantiationAwareBeanPostProcessor 处理器的 postProcessAfterInstantiation 方法，判断控制程序是否继续进行属性填充
+                                   （2）根据注入类型（byType/byName），提取依赖的，统一存入 PropertyValues 中
+                                   （3）判断是否需要进行 BeanPostProcessor 和 依赖检查：
+                                              如果有后置处理器，将会应用 InstantiationAwareBeanPostProcessor 处理器的 postProcessProperties 方法，对属性获取完毕填充前，对属性进行再次处理。使用 checkDependencies 方法来进行依赖检查
+                                  （4）将所有解析到的 PropertyValues  中的属性填充至 BeanWrapper 中
+                        4.5.4.6）初始化bean：例如afeterPropertiesSet()和 init-method属性配置的方法
+                 ---处理Aware接口。Spring会检测该对象是否实现了xxxAware接口，通过Aware类型的接口，可以让我们拿到Spring容器的一些相应的资源并注入：
+                                            ①如果这个Bean实现了BeanNameAware接口，会调用它实现的setBeanName(String beanId)方法，传入Bean的名字；
+                                            ②如果这个Bean实现了BeanClassLoaderAware接口，调用setBeanClassLoader()方法，传入ClassLoader对象的实例。
+                                            ②如果这个Bean实现了BeanFactoryAware接口，会调用它实现的setBeanFactory()方法，传递的是Spring工厂自身。
+                                            ③如果这个Bean实现了ApplicationContextAware接口，会调用setApplicationContext(ApplicationContext)方法，传入Spring上下文；
+                 ---执行BeanPostProcessor前置处理：如果想在Bean初始化前进行一些自定义的前置处理，那么可以让Bean实现了BeanPostProcessor接口，那将会调用postProcessBeforeInitialization(Object obj, String s)方法。
+                 ---调用自定义的 init 方法。这一步就是找到用户自定义的构造函数（如常用的@PostConstruct），然后调用它。                                            
+                                                 ① 如果Bean实现了InitializingBean接口，执行afeterPropertiesSet()方法
+                                                 ②如果Bean在Spring配置文件中配置了 init-method 属性，则会自动调用其配置的初始化方法。
+                                          ---执行BeanPostProcessor后置处理：如果这个Bean实现了BeanPostProcessor接口，将会调用postProcessAfterInitialization(Object obj, String s)方法；由于这个方法是在Bean初始化结束时调用的，所以可以被应用于内存或缓存技术；
+                        4.5.4.7）循环依赖检查
+                        4.5.4.8）注册DisposableBean：这一步是用来处理destroy-method属性，在这一步注册，以便在销毁对象时调用。
+                        4.5.4.9）完成创建并返回。
+
+AbstractBeanFactory.getObjectForBeanInstance(): 在 getBean()方法中，getObjectForBeanInstance() 是个高频方法，在单例缓存中获得 bean 还是 根据不同的 scope 策略加载 bean，都有这个这个方法的出现。因为从缓存中获取的bean是原始状态的bean，需要在这里对bean进行bean实例化。方法流程是：
+（1）验证 bean 类型：判断是否是工厂bean
+（2）对非 FactoryBean 不做处理
+（3）处理 FactoryBean：如果是FactoryBean类型，先对 bean 进行转换，再委托给 getObjectFromFactoryBean()方法进行处理。在这个方法中，对工厂 bean 有特殊处理，最终获取的是 FactoryBean.getObject() 方法返回的类型。
+
+
+Bean实例化阶段的执行顺序是如何的：
+https://blog.csdn.net/a745233700/article/details/113840727
+
