@@ -1,0 +1,20 @@
+抽象队列同步器：AbstractQueuedSynchronizer。CountDownLatch、Rreentrantlock、semaphore底层就是基于AQS实现的
+锁的是对象，监听的也是对象
+
+偏向锁-》轻量级锁（自旋锁实现）-》重量级锁。如果并发很高，自旋10次还没有拿到锁会升级到重量级锁
+
+自旋：其实就是不断的进行CAS操作。CAS对一个变量是原子操作，不会被其他线程打断。CAS一般是乐观锁，通过硬件unsafe来支持原子操作
+
+竞争不激烈的话，用CAS来实现比较合适，很容易自旋拿到锁（一直自旋还是比较吃cpu的）。但是高并发的情况，还是用synchronize比较合适
+
+synchronize是重量级锁，在用户态和kernel之间切换很耗时间。jdk1.5之后，优化后也没那么慢了，就是增加了偏向锁、轻量级锁等。
+
+AQS用的是CLH队列，是一种双向链表。竞争不到锁的话就加入队列。
+AQS框架帮我们等待、队列、锁竞争等机制，只需要实现tryAcquire和tryRelease方法即可
+
+CountDownLatch比join实现要优雅一些，两者都可是实现阻塞直到线程执行完。 
+
+
+CAS底层是cmpxchg（compare and exchange）这条汇编指令实现的。但是cmpxchg是非原子的，所以要加上lock指令，防止被其他线程打断。
+
+
