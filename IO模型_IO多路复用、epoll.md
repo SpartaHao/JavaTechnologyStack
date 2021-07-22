@@ -34,15 +34,12 @@ epoll 主要就是针对select的三个缺点进行了改进。
 
 select/poll/epoll之间的区别：
 
-	        select	   poll	   epoll
-
-数据结构      | bitmap	  | 数组	  | 红黑树
-
-最大连接数	| 1024	   | 无上限  | 无上限
-
-fd拷贝	  | 每次调用select拷贝	| 每次调用poll拷贝	| fd首次调用epoll_ctl拷贝，每次调用epoll_wait不拷贝
-
-工作效率	| 轮询：O(n)	| 轮询：O(n)	| 回调：O(1)
+ 类别 | select | poll | epoll
+ ---- | ---- | ---- | ----
+数据结构   |  bitmap  |  数组  |  红黑树  
+最大连接数 | 1024     | 无上限 | 无上限
+fd拷贝  | 每次调用select拷贝	| 每次调用poll拷贝	| fd首次调用epoll_ctl拷贝，每次调用epoll_wait不拷贝 
+工作效率| 轮询：O(n)  | 轮询：O(n)	| 回调：O(1)  
 
 来自 <https://cloud.tencent.com/developer/article/1681177> 
 
