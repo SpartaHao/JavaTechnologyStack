@@ -46,12 +46,3 @@ fd拷贝	  | 每次调用select拷贝	| 每次调用poll拷贝	| fd首次调用e
 
 来自 <https://cloud.tencent.com/developer/article/1681177> 
 
-
-一幅图总结一下 epoll 的整个工作路程。
-select和poll都只提供了一个函数——select或者poll函数。而epoll提供了三个函数，epoll_create,epoll_ctl和epoll_wait：
-epoll_create是创建一个epoll句柄；
-epoll_ctl：向内核添加、修改或删除要监控的文件描述符。
-epoll_wait则是等待事件的产生；
-
-在实践中，只要活儿足够的多，epoll_wait 根本都不会让进程阻塞。用户进程会一直干活，一直干活，直到 epoll_wait 里实在没活儿可干的时候才主动让出 CPU。这就是 epoll 高效的地方所在！
-
