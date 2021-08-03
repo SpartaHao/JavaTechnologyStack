@@ -35,3 +35,10 @@
 	因此:
 	不适合要求实时响应的系统、
 	不适合要求数据强一致性的系统(比如直接和钱有关系的系统 银行转账 第三方支付)、不适合不能容忍数据丢失的系统
+	
+	https://www.cnblogs.com/qingyunzong/p/9004593.html
+	https://www.jianshu.com/p/a2f21abec785
+	8. 如何增加写的性能？
+9. Kafka怎么判断一个broker是否还存活？
+
+Kafka怎么实现分区策略，怎么实现负载均衡？
