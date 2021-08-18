@@ -1,0 +1,149 @@
+## 1. 有了解哪些消息队列？能否做下对比？
+![MQ](https://mmbiz.qpic.cn/mmbiz_jpg/uChmeeX1Fpw9uCCF3ZWuMgbeMQaqwzUJKnRmbJ5Ufjia98Fq1MicqsoAkBAZuHtYPYQSkbuBMO1vyvf4Udul16kg/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+消息中间件的发展历史：  
+**TiB -> IBM(MQ) -> Active MQ -> RabbitMQ -> kafka -> Rocket MQ**  
+TiB太老了，八几出来的  
+IBM的也很老，而且要收费  
+Active MQ：吞吐量 6k   
+RabbitMQ： 吞吐量1.2w，ErLang语言写的，比较稳定，中小公司可以使用，出问题不好定位  
+kafka： 吞吐量100w，一般用于实时数据分析、大数据分析等场景，由Scala和Java编写  
+Rocket MQ：阿里开源的，吞吐量10w，电商场景推荐使用，java写的，出问题好定位  
+
+就拿吞吐量来说，早期比较活跃的ActiveMQ 和RabbitMQ基本上不是后两者的对手了，在现在这样大数据的年代吞吐量是真的很重要。  
+**ActiveMQ和RabbitMQ这两者因为吞吐量还有GitHub的社区活跃度的原因**，在各大互联网公司都已经基本上绝迹了，业务体量一般的公司会是有在用的，但是越来越多的公司更青睐RocketMQ这样的消息中间件了。
+
+Kafka压轴的大哥，**大数据领域，公司的日志采集，实时计算等场景**，都离不开他的身影，他基本上算得上是世界范围级别的消息队列标杆了。  
+https://mp.weixin.qq.com/s/Qhw4oS0OeN1N7uT1z6rbqg
+
+## 2. 面试官：说出八种消息队列的应用场景
+1. **应用解耦**：不需要关心消费者，只需要发送的消息队列，谁用谁订阅
+1. **异步处理**：如ticc的发送报告，不阻塞主流程，提高响应速度
+1. **削峰填谷**：使用消息队列缓冲消息，根据下游的处理能力自动调节流量
+1. **任务依赖**：需要依赖其他人的响应，订阅对应的topic，有流量就处理即可，而不用去轮询，可以实时处理
+1. **消息广播**：只需要关心消息是否送达了队列，至于谁关心它谁去订阅，可以同时被多个消费者消费
+1. **消息通讯**：支持点对点模型和发布订阅模型
+1. **数据采集**：如ticc运维系统实时收集日志
+1. **流计算任务**：大数据领域比较通用的架构，使用kafka作为数据源头
+
+消息队列确实有着非常广泛的应用，但它也有缺点：
+* 消息队列会带来一定的延迟问题；
+* 降低了数据的一致性；如果要保证强一致性则需要高代价的补偿，如分布式事务、对账。
+* 有数据丢失的风险；比如宕机重启，如果要保证高可用需要额外的机制如双活容灾。
+
+因此:
+* 不适合要求实时响应的系统、
+* 不适合要求数据强一致性的系统(比如直接和钱有关系的系统 银行转账 第三方支付)、
+* 不适合不能容忍数据丢失的系统
+
+## 3. 使用Kafka有什么优点和缺点？
+优点：  
+①支持跨数据中心的消息复制；  
+②**单机吞吐量**：十万级，最大的优点，就是吞吐量高;  
+③topic数量都吞吐量的影响：topic从几十个到几百个的时候，吞吐量会大幅度下降。所以在同等机器下，kafka尽量保证topic数量不要过多。如果要支撑大规模topic，需要增加更多的机器资源;  
+④**时效性**：ms级;  
+⑤**可用性**：非常高，kafka是分布式的，一个数据多个副本，少数机器宕机，不会丢失数据，不会导致不可用;  
+⑥**消息可靠性**：经过参数优化配置，消息可以做到0丢失;  
+⑦功能支持：功能较为简单，主要支持简单的MQ功能，在大数据领域的实时计算以及日志采集被大规模使用。  
+
+缺点：  
+①由于是批量发送，数据**并非真正的实时**； 仅支持统一分区内消息有序，无法实现全局消息有序；  
+②**有可能消息重复消费**；  
+③**依赖zookeeper进行元数据管理**，等等。  
+
+## 4. Kafka消息的格式？（应该不会问，了解即可）
+**基于kafka想要实现的功能：高吞吐量，多副本，消息持久化。其消息被不断地append到文件末尾**，而且消息是不可变的。对于Kafka来说，消息的主体部分的格式在网络传输中和磁盘上是一致的。Kafka的Producer、Broker和Consumer之间采用的是一套自行设计的基于TCP层的协议。Kafka的这套协议完全是为了Kafka自身的业务需求而定制的，而非要实现一套类似于Protocol Buffer的通用协议。
+
+Kafka根据topic（主题）对消息进行分类，发布到Kafka集群的每条消息都需要指定一个topic，每个topic将被分为多个partition（分区）。**每个partition在存储层面是追加log（日志）文件**，任何发布到此partition的消息都会被追加到log文件的尾部，每条消息在文件中的位置称为offset（偏移量），offset为一个long型的数值，它唯一标记一条消息。offset作为log中的序列号，Producer在生产消息的时候还不知道具体的值是什么，可以随便填个数字进去，offset实际上是broker设置的（存疑，producer应该知道有多少partion，发送了多少条才对）。
+
+查看具体的消息内容指令：  
+./kafka-run-class.sh kafka.tools.DumpLogSegments --files /tmp/kafka-logs/test3-0/00000000000000000000.log  --print-data-log
+
+消息示例：  
+offset: 37348 position: 163434 CreateTime: 1629166598322 size: 893 magic: 1 compresscodec: NONE crc: 4017068343 isvalid: true
+| offset: 37348 CreateTime: 1629166598322 keysize: 0 valuesize: 859 crc: 4017068343 isvalid: true key:  payload: {"public":{"****"},"param":{"round":1},"header":{"requestId":"1123456789"},"cmd":"test"}
+
+crc：crc32校验值。校验范围为magic至value之间。  
+magic：消息格式版本号。   
+createTime表示创建时间  
+keysize和valuesize 分别表示键和值的大小  
+compresscodec表示压缩类型  
+key：可选，如果没有key则无此字段  
+**payload表示消息的具体内容**  
+
+> 接收到的kafka消息的类定义ConsumerRecord：可以看到包含topic、partition、offset、key、value等字段;  
+> 消息是Kafka中最基本的数据单元，主要由key和value构成；真正有效的消息是value数据，key只作为消息路由分区使用，kafka根据key决定将当前消息存储在哪个分区。
+
+https://blog.csdn.net/qq_39907763/article/details/82697355
+
+## 5. Kafka的高性能的原因？
+### 分区
+分区的设计使得Kafka消息的**读写性能可以突破单台broker的I/O性能瓶颈**，可以在创建主题的时候指定分区数，Kafka会将消息分发至不同的分区，如果这些分区不在同一个broker上，
+就相当于并发的写入多台broker，性能自然要比写入单台broker要高。也可以在主题创建完成之后去修改分区数，通过增加分区数可以实现水平扩展，但是要注意，分区数也不是越多越好，
+一般达到某一个阈值之后，再增加分区数性能反而会下降，具体阈值需要对Kafka集群进行压测才能确定。
+
+### 日志分段存储
+为了防止日志（Log）过大，Kafka引入了日志分段（LogSegment）的概念，将日志切分成多个日志分段。在磁盘上，日志是一个目录，每个日志分段对应于日志目录下的**日志文件、偏移量索引文件、时间戳索引文件**（可能还有其他文件）。
+向日志中追加消息是**顺序写入的，只有最后一个日志分段才能执行写入操作**，之前所有的日志分段都不能写入数据。
+为了便于检索，每个日志分段都有两个索引文件：偏移量索引文件和时间戳索引文件。**每个日志分段都有一个基准偏移量baseOffset，用来表示当前日志分段中第一条消息的offset**。偏移量索引文件和时间戳索引文件是以稀疏索引的方式构造的，偏移量索引文件中的偏移量和时间戳索引文件中的时间戳都是严格单调递增的。查询指定偏移量（或时间戳）时，使用二分查找快速定位到偏移量（或时间戳）的位置。可见Kafka中对消息的查找速度还是非常快的。
+
+### 消息顺序追加：提高写速度
+Kafka是通过文件追加的方式来写入消息的，只能在日志文件的最后追加新的消息，并且不允许修改已经写入的消息，**因为每条消息都被append到该Partition中，属于顺序写磁盘，
+因此效率非常高（经验证，顺序写磁盘效率比随机写内存还要高，这是Kafka高吞吐率的一个很重要的保证）**。
+
+### 页缓存pageCache：提高查询性能
+![pageCache](https://img-blog.csdnimg.cn/20210705161515994.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4NTcxOTg3,size_16,color_FFFFFF,t_70#pic_center)
+如上图，是通过PageCache的方式，Kafka会将一些热点数据放在PageCache中，那如何定义热点数据呢，为最近访问的数据，因为最近访问的数据再次被访问到的机率还是很大的，当查询数据时，先从PageCache中进行查找，如果PageCache没有，再去磁盘中查找，并将磁盘中的数据拷贝到PageCache中。这样就可以避免每次数据查询都直接去磁盘查询，因为每次的磁盘查询就是很"耗费时间"的。
+
+这里其实还有一个**预查询**的概念，正因为磁盘查询性能低，如果一次没有查到还会进行第二次，所以在第一次查询的时候，PageCache会进行预查询的操作，比如需要查询0-32k的数据，PageCache会将32-64k的数据也加载进来，增加查询的命中率。
+
+还有在大文件查询的情况下，是不宜用PageCache的，因为大文件的一次加载可能直接把PageCache的空间占满，而且大文件拷贝到PageCache的开销也是很大的。
+
+### 零拷贝
+因为Kafka的消息是存在磁盘的，消息是在生产者，Broker，消费者中进行网络传输的，这里就涉及到了消息在磁盘到网络的转换。而**零拷贝的作用就是通过减少用户态和内核态的转换，从而减少消息在磁盘到网络传输的资源损耗**。
+
+零拷贝技术是一种避免CPU将数据从一块存储拷贝到另一块存储的技术。**Kafka使用零拷贝技术（SendFile）将数据直接从磁盘复制到网卡设备缓冲区中，而不需要经过应用程序的转发，减少用户态到内核态状态的转换**，从而提高文件传输的速率。
+
+我们先来看看一次文件的读取，其中用户态和内核态的转换过程：
+![zeroCopy1](https://img-blog.csdnimg.cn/20210705161544271.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4NTcxOTg3,size_16,color_FFFFFF,t_70#pic_center)
+
+在这里发生了四次状态转换和四次拷贝，四次状态转换分别是一次write()和一次read(),每次都会对应两次的用户态和内核态的切换，四次拷贝分别是两次DMA拷贝和两次cpu拷贝。
+想要提高性能必须减少状态切换次数和文件的拷贝次数。
+
+零拷贝技术就是为了解决这个问题，一般实现零拷贝有两个方式，分别为**mmap+write和sendFile**，我们都来讲一下各自的实现方式。
+
+#### mmap+write
+![mmap](https://img-blog.csdnimg.cn/20210705161556112.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4NTcxOTg3,size_16,color_FFFFFF,t_70#pic_center)
+
+在这里主要改变是当内核态中将磁盘文件拷贝到内核的缓冲区后，通过mmap会将这部分数据进行共享，用户态可以直接访问，同时数据直接从内核的缓冲区拷贝到socket缓冲区，不需要经过用户态了。
+这里的优化可以**减少一次数据拷贝**，但是状态切换还是4次，总体来说优化并不是很大。
+
+#### sendFile
+![sendFile1](https://img-blog.csdnimg.cn/20210705161611497.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4NTcxOTg3,size_16,color_FFFFFF,t_70#pic_center)
+
+通过sendfile来代替一次read()和write(),从而就能减少两次状态的切换，同时拷贝次数还是3次。这里其实还存在一定的优化，那就是在cpu拷贝内核的缓冲区的数据到socket缓冲区，如果网卡支持 SG-DMA，那么可以通过SG-DMA来将数据直接拷贝到网卡，减少cpu拷贝的过程，最终的效果如下：
+![sendFile2](https://img-blog.csdnimg.cn/20210705161622487.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4NTcxOTg3,size_16,color_FFFFFF,t_70#pic_center)
+
+其实**零拷贝，并不是说拷贝的次数为零，只是说没有cup拷贝的过程，这里的零拷贝指的是cpu拷贝次数为零**。
+
+#### 实测效率对比：
+kafka采用的是sendfile的零拷贝技术，rocketMQ采用的是mmap。  
+一般服务端进行通信的时候需要进行4次的拷贝：
+1. 从磁盘到文件缓冲区  --内核（100M数据经测试要2ms）
+2. 从文件缓冲区到应用缓冲区 --内核到用户进程（100M数据经测试要200ms）
+3. 从应用缓冲区到socket缓冲--用户进程到内核（100M数据经测试要200ms）
+4. 从socket缓冲到网卡 --内核（100M数据经测试要2ms）
+
+sendfile通过直接发送文件描述符的形式从4次拷贝缩短到2次，去掉了2,3步，**效率提升100倍**；mmap通过内存映射去掉了第2步，效率提升50%。
+
+### 网络数据采用压缩算法
+在Kafka中消息是在生产者，Broker，消费者进行传输的，Kafka采用的数据压缩的方式，以时间换空间，**通过cpu时间的增加来尽量的减少磁盘空间的占用和网络IO的传输量，Kafka中消息的压缩是发生在生产者和Broker端的**。
+
+在生产者端，消息发送的时候将消息进行压缩，可以通过参数来配置进行压缩的算法，常见的算法有GZIP,Snappy，zstd，zlib等等。Kafka是在发送消息的时候，会将采用的压缩算法也会放入消息中，这样在消费者接受到消息之后，就知道是采用什么压缩算法去进行解压啦。
+
+关于Kafka压缩算法的开启，建议是在cpu资源充足的情况下，并且特别是在带宽资源有限的情况下，消息压缩的开启缓解很大的压力。
+
+来自 <https://www.cnblogs.com/lvnux/p/13174986.html> 
+
+https://blog.csdn.net/qq_38571987/article/details/118492557
+
