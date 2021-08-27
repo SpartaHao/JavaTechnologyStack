@@ -94,11 +94,65 @@ value是上一次消费的offset值，在拉取消息的时候，如果缓存中
 注意**如果kafka地址变了，需要将redis中的map清空，防止消息无法消费**。
 
 ### 如何做到消息不丢失：
+#### +生产者丢失消息
+生产者采用push模式将数据发布到broker，每条消息追加到分区中，顺序写入磁盘。消息写入Leader后，Follower是主动与Leader进行同步。  
+
+Kafka消息发送有两种方式：同步（sync）和异步（async），默认是同步方式，可通过producer.type属性进行配置。
+
+Kafka通过配置**request.required.acks**属性来确认消息的生产：
+* 0表示不进行消息接收是否成功的确认；不能保证消息是否发送成功，生成环境基本不会用。
+* 1表示当Leader接收成功时确认；只要Leader存活就可以保证不丢失，保证了吞吐量。
+* -1或者all表示Leader和Follower都接收成功时确认；可以最大限度保证消息不丢失，但是吞吐量低。  
+**kafka producer 的参数acks 的默认值为1**，所以默认的producer级别是at least once，并不能exactly once。
+
+敲黑板了，这里可能会丢消息的！
+
+* 如果acks配置为0，发生网络抖动消息丢了，生产者不校验ACK自然就不知道丢了。
+* 如果acks配置为1保证leader不丢，但是如果leader挂了，恰好选了一个没有ACK的follower，那也丢了。
+* all：保证leader和follower不丢，但是如果网络拥塞，没有收到ACK，会有重复发的问题。
+
+#### +Kafka Broker丢失消息
+![store](https://mmbiz.qpic.cn/mmbiz_png/RXvHpViaz3EpVmy0ZJ4db6DicicfibajG7CcLTpX0ctRRzTX5eVWeh89ic9Vgx2DwQJLcIiafe4vZ9C2JPUKGgWNLMQg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+**操作系统本身有一层缓存，叫做 Page Cache，当往磁盘文件写入的时候，系统会先将数据流写入缓存中，至于什么时候将缓存的数据写入文件中是由操作系统自行决定**。
+
+Kafka提供了一个参数 producer.type 来控制是不是主动flush，如果Kafka写入到mmap之后就立即 flush 然后再返回 Producer 叫同步 (sync)；写入mmap之后立即返回 Producer 不调用 flush 叫异步 (async)。
+
+敲黑板了，这里可能会丢消息的！
+
+**Kafka通过多分区多副本机制中已经能最大限度保证数据不会丢失，如果数据已经写入系统 cache 中但是还没来得及刷入磁盘，此时突然机器宕机或者掉电那就丢了**，当然这种情况很极端。
+
+#### +消费者丢失消息
+消费者消费的进度通过offset保存在kafka集群的__consumer_offsets这个topic中。
+
+消费消息的时候主要分为两个阶段：
+
+1、标识消息已被消费，commit offset坐标；
+
+2、处理消息。
+
+敲黑板了，这里可能会丢消息的！
+
+场景一：先commit再处理消息。如果在处理消息的时候异常了，但是offset 已经提交了，这条消息对于该消费者来说就是丢失了，再也不会消费到了。
+
+场景二：先处理消息再commit。如果在commit之前发生异常，下次还会消费到该消息，重复消费的问题可以通过业务保证消息幂等性来解决。
+
+#### +总结
+Kafka可能会在三个阶段丢失消息：  
+* （1）生产者发送数据；
+* （2）Kafka Broker 存储数据；
+* （3）消费者消费数据；
+
+三种场景分别对应如下措施：  
 1. 生产端要等消息写到日志，收到ack后在发送下一批，否则进行重试；ack设为-1；
-2. 消费端要设为**手动提交offset值**，如果consumer挂了可以重新消费，要做好幂等保障
+2. 情况很极端，最多设置主动flush降低概率，没必要
+3. 消费端要设为**手动提交offset值**，如果consumer挂了可以重新消费，要做好幂等保障
+
+**在生产环境中严格做到exactly once其实是难的，同时也会牺牲效率和吞吐量，最佳实践是业务侧做好补偿机制**，万一出现消息丢失可以兜底。
 
 https://www.cnblogs.com/helios-fz/p/12119727.html  
 <http://www.kafka.cc/archives/260.html>   
+https://mp.weixin.qq.com/s?__biz=MzIwODI1OTk1Nw==&mid=2650321970&idx=1&sn=3a26ed6f0323c945c1eacb05c758cd62&chksm=8f09ca28b87e433e657fca2ffd9d45a74453ffeb17ee76a9bac8f2a7cfd3a0e6ac936396812c&scene=178&cur_album_id=1592203010900869126#rd  
 
 ## 17. 如何设计保证kakfa中有某个特征的消息的是严格按照顺序消费的？
 **kafka只保证单partition有序**，如果topic有多个partition，消费数据时就不能保证数据的顺序。在需要严格保证消息的消费顺序的场景下，需要将partition数目设为1，但是此时就没有办法保证吞吐量了，基本不用这种方式。
